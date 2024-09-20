@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repositório Acadêmico - Zona Educacional</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .upload-section {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 30px;
+            background-color: #f9f9f9;
+        }
+
+        .upload-section input[type="file"] {
+            margin-bottom: 10px;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-list table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .file-list th, .file-list td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .file-list th {
+            background-color: #f4f4f4;
+        }
+
+        .file-list td a {
+            color: blue;
+            text-decoration: none;
+        }
+
+        .file-list td a:hover {
+            text-decoration: underline;
+        }
+
+        .admin-section {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .admin-section input {
+            margin-right: 10px;
+        }
+
+        .admin-section button {
+            padding: 10px;
+            margin: 0 5px;
+            background-color: #333;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .admin-section button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Repositório Acadêmico - Upload e Download de Trabalhos</h1>
+    </header>
+
+    <div class="container">
+        <section class="upload-section">
+            <h2>Enviar Trabalho Acadêmico (PDF)</h2>
+            <input type="file" id="pdfFile" accept=".pdf">
+            <br>
+            <button id="uploadBtn">Enviar Trabalho</button>
+        </section>
+
+        <!-- Seção de acesso administrativo -->
+        <section class="admin-section">
+            <h2>Acesso Administrativo</h2>
+            <input type="password" id="adminKey" placeholder="Digite a chave secreta">
+            <button id="verifyBtn">Verificar Acesso</button>
+        </section>
+
+        <section class="file-list">
+            <h2>Trabalhos Enviados</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome do Trabalho</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="fileTableBody">
+                    <!-- Lista de trabalhos será carregada aqui -->
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <footer>
+        <p>Entre em contato: <a href="mailto:zonaeducacional@gmail.com">zonaeducacional@gmail.com</a></p>
+    </footer>
+
+    <script>
+        const chaveSecreta = 'senhaadmin'; // Defina a chave secreta aqui
+
+        // Inicializa o array de trabalhos do Local Storage
+        let trabalhos = JSON.parse(localStorage.getItem('trabalhos')) || [];
+        let adminAcesso = false; // Controle de acesso administrativo
+
+        // Função para atualizar a tabela de arquivos
+        function atualizarTabela() {
+            const fileTableBody = document.getElementById('fileTableBody');
+            fileTableBody.innerHTML = '';  // Limpa a tabela
+
+            trabalhos.forEach((trabalho, index) => {
+                const row = document.createElement('tr');
+                const nameCell = document.createElement('td');
+                const actionCell = document.createElement('td');
+                const downloadLink = document.createElement('a');
+                const removeBtn = document.createElement('button');
+
+                // Nome do arquivo
+                nameCell.textContent = trabalho.name;
+
+                // Link para download
+                downloadLink.href = trabalho.url;
+                downloadLink.textContent = 'Download';
+                downloadLink.download = trabalho.name;
+
+                // Adiciona o botão de remover se o usuário for administrador
+                if (adminAcesso) {
+                    removeBtn.textContent = 'Remover';
+                    removeBtn.onclick = () => removerTrabalho(index);
+                    actionCell.appendChild(removeBtn);
+                }
+
+                // Adiciona o link de download
+                actionCell.appendChild(downloadLink);
+
+                // Adiciona as células à linha
+                row.appendChild(nameCell);
+                row.appendChild(actionCell);
+
+                // Adiciona a linha à tabela
+                fileTableBody.appendChild(row);
+            });
+        }
+
+        // Função para remover trabalho
+        function removerTrabalho(index) {
+            trabalhos.splice(index, 1);  // Remove do array
+            localStorage.setItem('trabalhos', JSON.stringify(trabalhos));  // Atualiza Local Storage
+            atualizarTabela();  // Atualiza a tabela
+        }
+
+        // Função de upload de arquivos
+        document.getElementById('uploadBtn').addEventListener('click', () => {
+            const fileInput = document.getElementById('pdfFile');
+            const file = fileInput.files[0];
+
+            if (file && file.type === 'application/pdf') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const trabalho = {
+                        name: file.name,
+                        url: e.target.result
+                    };
+
+                    trabalhos.push(trabalho);  // Adiciona ao array
+                    localStorage.setItem('trabalhos', JSON.stringify(trabalhos));  // Salva no Local Storage
+                    atualizarTabela();  // Atualiza a tabela
+                };
+                reader.readAsDataURL(file);  // Converte o arquivo para Base64
+            } else {
+                alert('Por favor, envie um arquivo PDF.');
+            }
+
+            fileInput.value = '';  // Limpa o input após o upload
+        });
+
+        // Função para verificar a chave secreta e permitir acesso administrativo
+        document.getElementById('verifyBtn').addEventListener('click', () => {
+            const adminKeyInput = document.getElementById('adminKey').value;
+            if (adminKeyInput === chaveSecreta) {
+                adminAcesso = true;
+                document.querySelectorAll('.file-list button').forEach(btn => btn.style.display = 'inline-block');
+                document.getElementById('adminKey').style.display = 'none';
+                document.getElementById('verifyBtn').style.display = 'none';
+                atualizarTabela();  // Atualiza a tabela para mostrar os botões de remoção
+            } else {
+                alert('Chave secreta incorreta.');
+            }
+        });
+
+        // Atualiza a tabela ao carregar a página
+        window.onload = atualizarTabela;
+    </script>
+</body>
+</html>
